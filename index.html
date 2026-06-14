@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="theme-color" content="#0F1115" />
+  <meta name="description" content="GEMBA Walk — evidencia a inšpekcia úloh vo výrobe" />
+  <title>GEMBA Walk</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./css/styles.css" />
+  <script src="./js/config.js"></script>
+</head>
+<body>
+  <div id="app"><div class="auth"><div class="spin"></div></div></div>
+  <div id="toast" class="toast"></div>
+
+  <!-- skrytý file input pre fotky -->
+  <input id="filePicker" type="file" accept="image/*" multiple hidden />
+
+  <script type="module" src="./js/app.js"></script>
+  <script>
+    // Registrácia service workeru (PWA / offline shell)
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
