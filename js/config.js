@@ -15,7 +15,7 @@ window.GEMBA_CONFIG = {
   SUPABASE_ANON_KEY: "sb_publishable_K5QrXOPSCwu3t2MAvMy2Ug_YIxNknA-",
 
   // Voliteľné: zoznam lokalít v roletovom menu
-  SITES: ["Location 1", "Location 2", "Location 3", "Location 4", "Location 5"],
+ SITES: ["Koridor", "CR2", "CR1", "Bake Rolls", "Sklad Surovín", "Sklad Hotových výrobkov"],
 
   // Voliteľné: kategórie GEMBA
   TOPICS: ["5S", "Ergonómia", "Bezpečnosť", "Odpad", "Štandardizácia"]
