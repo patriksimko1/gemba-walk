@@ -1,5 +1,6 @@
 /* ============================================================
    GEMBA Walk — hlavná logika (vanilla JS, bez build kroku)
+   v2 — presné miesto, foťák/galéria, mazanie fotiek, odoslanie e-mailu
    ============================================================ */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -8,7 +9,7 @@ const CFG = window.GEMBA_CONFIG || {};
 const TOPICS = CFG.TOPICS && CFG.TOPICS.length ? CFG.TOPICS
   : ["5S", "Ergonómia", "Bezpečnosť", "Odpad", "Štandardizácia"];
 const SITES = CFG.SITES && CFG.SITES.length ? CFG.SITES
-  : ["Location 1", "Location 2", "Location 3", "Location 4", "Location 5"];
+  : ["Koridor", "CR2", "CR1", "Bake Rolls", "Sklad Surovín", "Sklad Hotových výrobkov"];
 
 const STATUSES = ["Nový", "V riešení", "Vyriešený", "Zrušený"];
 const PRIORITIES = ["Nízka", "Stredná", "Vysoká", "Kritická"];
@@ -35,14 +36,14 @@ if (configured) {
 /* ---------- Stav ---------- */
 const state = {
   user: null,
-  view: "list",          // list | dashboard | detail | form
+  view: "list",
   inspections: [],
   loading: true,
   selectedId: null,
-  editing: null,         // záznam pri editácii
-  formPhotos: [],        // [{id, dataUrl, uploaded, url}]
+  editing: null,
+  formPhotos: [],
   filters: { q: "", status: "", site: "", priority: "" },
-  authMode: "login"      // login | signup
+  authMode: "login"
 };
 
 /* ---------- Pomocné ---------- */
@@ -69,7 +70,7 @@ function toast(msg, isErr = false) {
   t.textContent = msg;
   t.className = "toast show" + (isErr ? " err" : "");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = "toast"; }, 3200);
+  toastTimer = setTimeout(() => { t.className = "toast"; }, 3600);
 }
 
 function loadScript(src) {
@@ -83,7 +84,7 @@ function loadScript(src) {
   });
 }
 
-/* ---------- Ikony (inline SVG) ---------- */
+/* ---------- Ikony ---------- */
 const I = {
   search: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>`,
   list: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>`,
@@ -93,19 +94,23 @@ const I = {
   close: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>`,
   chev: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>`,
   camera: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+  image: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>`,
   trash: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-9 0v14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6"/></svg>`,
   mail: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/></svg>`,
   pdf: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`,
   edit: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`,
   download: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>`,
   logout: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>`,
+  info: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>`,
+  share: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>`,
+  phone: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>`,
   inbox: `<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.5 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.5A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.5z"/></svg>`
 };
 
 /* ---------- Badges ---------- */
 function statusBadge(s) {
   const c = STATUS_COLOR[s] || "var(--muted)";
-  return `<span class="badge dot" style="color:${c};background:${c.replace('var(', 'color-mix(in srgb, var(').replace(')', ') 14%, transparent)')}">${esc(s)}</span>`;
+  return `<span class="badge dot" style="color:${c};background:color-mix(in srgb, ${c} 14%, transparent)">${esc(s)}</span>`;
 }
 function priorityBadge(p) {
   const c = PRIORITY_COLOR[p] || "var(--muted)";
@@ -137,7 +142,6 @@ async function loadInspections() {
 }
 
 async function saveInspection(payload, id) {
-  // upload fotiek
   const newUrls = await uploadPendingPhotos();
   const existing = id ? (state.formPhotos.filter(p => p.uploaded).map(p => p.url)) : [];
   const photos = [...existing, ...newUrls];
@@ -145,6 +149,7 @@ async function saveInspection(payload, id) {
   const row = {
     gemba_topic: payload.gemba_topic,
     site: payload.site,
+    site_detail: payload.site_detail,
     issue_found: payload.issue_found,
     possible_root_cause: payload.possible_root_cause,
     next_step: payload.next_step,
@@ -170,7 +175,7 @@ async function removeInspection(id) {
 }
 
 /* ============================================================
-   FOTKY — kompresia + upload
+   FOTKY
    ============================================================ */
 function compressImage(file, maxW = 1080, maxKB = 500) {
   return new Promise((resolve, reject) => {
@@ -263,7 +268,7 @@ async function flushQueue() {
       const { error } = await supabase.from("inspections").insert({ ...item.payload, photos: urls });
       if (error) throw error;
     } catch (e) {
-      remaining.push(item); // necháme na ďalší pokus
+      remaining.push(item);
     }
   }
   setQueue(remaining);
@@ -285,6 +290,25 @@ function updateConnBanner() {
     const n = getQueue().length;
     showBanner("offline", n ? `Offline — ${n} záznam(ov) čaká na odoslanie` : "Si offline — záznamy sa uložia lokálne");
   } else hideBanner();
+}
+
+/* ============================================================
+   MODÁLNE OKNO
+   ============================================================ */
+function openModal(html) {
+  let m = $("#modalRoot");
+  if (!m) {
+    m = document.createElement("div");
+    m.id = "modalRoot";
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `<div class="modal-overlay" data-action="modal-backdrop">
+      <div class="modal" role="dialog" aria-modal="true">${html}</div>
+    </div>`;
+}
+function closeModal() {
+  const m = $("#modalRoot");
+  if (m) m.innerHTML = "";
 }
 
 /* ============================================================
@@ -350,7 +374,7 @@ function renderAuth() {
 }
 
 /* ============================================================
-   FILTRE + ZOZNAM
+   ZOZNAM
    ============================================================ */
 function pendingAsCards() {
   return getQueue().map(item => ({
@@ -358,6 +382,7 @@ function pendingAsCards() {
     _pending: true,
     gemba_topic: item.payload.gemba_topic,
     site: item.payload.site,
+    site_detail: item.payload.site_detail,
     issue_found: item.payload.issue_found,
     status: "Čaká na synchronizáciu",
     priority: item.payload.priority,
@@ -374,7 +399,7 @@ function filtered() {
     if (f.site && it.site !== f.site) return false;
     if (f.priority && it.priority !== f.priority) return false;
     if (f.q) {
-      const hay = `${it.site} ${it.gemba_topic} ${it.issue_found} ${it.possible_root_cause || ""} ${it.next_step || ""}`.toLowerCase();
+      const hay = `${it.site} ${it.site_detail || ""} ${it.gemba_topic} ${it.issue_found} ${it.possible_root_cause || ""} ${it.next_step || ""}`.toLowerCase();
       if (!hay.includes(f.q.toLowerCase())) return false;
     }
     return true;
@@ -402,7 +427,7 @@ function listHTML() {
   return `
     <div class="toolbar">
       <div class="search">${I.search}
-        <input id="searchInput" type="search" placeholder="Hľadať nález, lokalitu, popis…" value="${esc(f.q)}" />
+        <input id="searchInput" type="search" placeholder="Hľadať nález, miesto, popis…" value="${esc(f.q)}" />
       </div>
       <div class="filters">
         ${statusChips}
@@ -432,6 +457,7 @@ function cardHTML(it) {
       <div class="body">
         <div class="row1">
           <span class="site">${esc(it.site)}</span>
+          ${it.site_detail ? `<span class="sitedetail">· ${esc(it.site_detail)}</span>` : ""}
           <span class="topic">${esc(it.gemba_topic)}</span>
         </div>
         <div class="issue">${esc(it.issue_found || "(bez popisu)")}</div>
@@ -462,6 +488,7 @@ function detailHTML(it) {
         ${statusBadge(it.status)} ${priorityBadge(it.priority)}
       </div>
       ${field("Lokalita", it.site)}
+      ${field("Presné miesto", it.site_detail)}
       ${field("Popis nálezu", it.issue_found)}
       ${field("Možná príčina", it.possible_root_cause)}
       ${field("Ďalší krok", it.next_step)}
@@ -473,7 +500,7 @@ function detailHTML(it) {
         <div class="gallery">${photos.map(u => `<img src="${esc(u)}" loading="lazy" alt="foto" />`).join("")}</div></div>` : ""}
       <div class="detail-actions">
         <button class="btn" data-action="edit" data-id="${esc(it.id)}">${I.edit} Upraviť</button>
-        <button class="btn" data-action="email" data-id="${esc(it.id)}">${I.mail} E-mail</button>
+        <button class="btn" data-action="email" data-id="${esc(it.id)}">${I.mail} Odoslať e-mailom</button>
         <button class="btn" data-action="pdf" data-id="${esc(it.id)}">${I.pdf} PDF</button>
         <button class="btn danger" data-action="delete" data-id="${esc(it.id)}">${I.trash} Zmazať</button>
       </div>
@@ -504,6 +531,12 @@ function formHTML() {
         <select id="f_site">${SITES.map(s => `<option ${e.site === s ? "selected" : ""}>${esc(s)}</option>`).join("")}</select>
       </div>
       <div class="group">
+        <label class="label-row">Presné miesto
+          <button type="button" class="info-btn" data-action="info-site" aria-label="Pomoc k presnému miestu">${I.info}</button>
+        </label>
+        <input type="text" id="f_site_detail" placeholder="napr. pri stroji XY, regál 3, vstup do haly" value="${esc(e.site_detail || "")}" />
+      </div>
+      <div class="group">
         <label>Popis nálezu</label>
         <textarea id="f_issue" placeholder="Čo si našiel?">${esc(e.issue_found || "")}</textarea>
       </div>
@@ -529,19 +562,26 @@ function formHTML() {
       </div>
       <div class="group">
         <label>Fotografie</label>
-        <button type="button" class="attach" data-action="pick-photo">${I.camera} Odfotiť / Pridať fotku</button>
-        <div class="hint">Fotka sa pred odoslaním automaticky zmenší (max 1080px, ~500 KB).</div>
+        <div class="photo-actions">
+          <button type="button" class="btn primary" data-action="pick-camera">${I.camera} Odfotiť</button>
+          <button type="button" class="btn" data-action="pick-gallery">${I.image} Pridať fotku</button>
+        </div>
+        <div class="hint">„Odfotiť" otvorí fotoaparát, „Pridať fotku" galériu. Fotka sa automaticky zmenší.</div>
         <div class="photo-grid" id="photoGrid">
-          ${photos.map(p => `
-            <div class="ph">
-              <img src="${esc(p.dataUrl || p.url)}" alt="" />
-              ${p.uploading ? `<div class="up">…</div>` : ""}
-              <button type="button" class="rm" data-action="rm-photo" data-id="${esc(p.id)}">${I.close}</button>
-            </div>`).join("")}
+          ${photos.map(p => photoTile(p)).join("")}
         </div>
       </div>
       <button type="submit" class="btn primary" id="saveBtn">Uložiť záznam</button>
     </form>`;
+}
+
+function photoTile(p) {
+  return `
+    <div class="ph">
+      <img src="${esc(p.dataUrl || p.url)}" alt="" />
+      ${p.uploading ? `<div class="up"><span class="spin"></span></div>` : ""}
+      <button type="button" class="rm" data-action="rm-photo" data-id="${esc(p.id)}" aria-label="Zmazať fotku">${I.trash}</button>
+    </div>`;
 }
 
 function readForm() {
@@ -552,6 +592,7 @@ function readForm() {
   return {
     gemba_topic: $("#f_topic").value,
     site: $("#f_site").value,
+    site_detail: $("#f_site_detail").value.trim(),
     issue_found: $("#f_issue").value.trim(),
     possible_root_cause: $("#f_cause").value.trim(),
     next_step: $("#f_next").value.trim(),
@@ -562,14 +603,14 @@ function readForm() {
 }
 
 /* ============================================================
-   DASHBOARD + GRAFY (čisté SVG)
+   DASHBOARD + GRAFY
    ============================================================ */
 function pieSVG(data) {
   const total = data.reduce((a, d) => a + d.value, 0);
   if (!total) return `<div class="empty" style="padding:20px">Žiadne dáta</div>`;
   const cx = 90, cy = 90, r = 78;
   let angle = -Math.PI / 2;
-  const arcs = data.filter(d => d.value > 0).map((d, i) => {
+  const arcs = data.filter(d => d.value > 0).map((d) => {
     const frac = d.value / total;
     const a2 = angle + frac * 2 * Math.PI;
     const large = frac > 0.5 ? 1 : 0;
@@ -623,12 +664,10 @@ function dashboardHTML() {
   const open = data.filter(d => d.status === "Nový" || d.status === "V riešení").length;
   const done = data.filter(d => d.status === "Vyriešený").length;
 
-  // pie podľa kategórie
   const byTopic = TOPICS.map((t, i) => ({
     label: t, value: data.filter(d => d.gemba_topic === t).length, color: TOPIC_COLOR[i % TOPIC_COLOR.length]
   }));
 
-  // line za 30 dní
   const days = [];
   for (let i = 29; i >= 0; i--) {
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
@@ -669,7 +708,7 @@ function dashboardHTML() {
    ============================================================ */
 function rowsForExport() {
   return state.inspections.map(it => ({
-    ID: it.id, Kategória: it.gemba_topic, Lokalita: it.site,
+    ID: it.id, Kategória: it.gemba_topic, Lokalita: it.site, "Presné miesto": it.site_detail,
     "Popis nálezu": it.issue_found, "Možná príčina": it.possible_root_cause,
     "Ďalší krok": it.next_step, Priradené: it.assigned_to, Nahlásil: it.reported_by,
     Stav: it.status, Priorita: it.priority, "Počet fotiek": (it.photos || []).length,
@@ -729,6 +768,7 @@ async function exportPDF(it) {
     };
     line("Kategória", it.gemba_topic);
     line("Lokalita", it.site);
+    line("Presné miesto", it.site_detail);
     line("Stav / Priorita", `${it.status}  •  ${it.priority}`);
     line("Popis nálezu", it.issue_found);
     line("Možná príčina", it.possible_root_cause);
@@ -746,7 +786,7 @@ async function exportPDF(it) {
         try {
           const dataUrl = await urlToDataUrl(url);
           doc.addImage(dataUrl, "JPEG", x, y, 120, 120);
-        } catch { /* preskočíme nečitateľnú fotku */ }
+        } catch { /* preskočíme */ }
         x += 130;
         if (x > 430) { x = M; y += 130; if (y > 680) { doc.addPage(); y = 50; } }
       }
@@ -771,13 +811,18 @@ function urlToDataUrl(url) {
   });
 }
 
-function emailFor(it) {
-  const subject = `[GEMBA ${it.priority}] ${it.gemba_topic} — ${it.site}`;
-  const body =
-`Nový/aktualizovaný nález z obhliadky GEMBA:
+/* ============================================================
+   E-MAIL (priame odoslanie + záloha cez mailto)
+   ============================================================ */
+function emailSubject(it) {
+  return `[GEMBA ${it.priority}] ${it.gemba_topic} — ${it.site}${it.site_detail ? " (" + it.site_detail + ")" : ""}`;
+}
+function emailText(it) {
+  return `Nález z obhliadky GEMBA:
 
 Kategória: ${it.gemba_topic}
 Lokalita: ${it.site}
+Presné miesto: ${it.site_detail || "—"}
 Stav: ${it.status}
 Priorita: ${it.priority}
 
@@ -793,8 +838,100 @@ ${it.next_step || "—"}
 Nahlásil: ${it.reported_by || "—"}
 Vytvorené: ${fmtDate(it.created_at)}
 ${(it.photos || []).length ? "\nFotografie:\n" + it.photos.join("\n") : ""}`;
-  const to = it.assigned_to && it.assigned_to.includes("@") ? it.assigned_to : "";
-  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+function buildMailto(it, to) {
+  return `mailto:${encodeURIComponent(to || "")}?subject=${encodeURIComponent(emailSubject(it))}&body=${encodeURIComponent(emailText(it))}`;
+}
+
+function openEmailModal(it) {
+  const def = (it.assigned_to && it.assigned_to.includes("@")) ? it.assigned_to : "";
+  openModal(`
+    <div class="modal-head">${I.mail}<h3>Odoslať e-mailom</h3></div>
+    <p class="modal-sub">Záznam sa odošle ako e-mail na zadanú adresu.</p>
+    <input type="email" id="emailTo" placeholder="prijemca@firma.sk" value="${esc(def)}" />
+    <div class="hint">Viac adries oddeľ čiarkou.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-action="modal-close">Zrušiť</button>
+      <button class="btn primary" data-action="send-email-now" data-id="${esc(it.id)}">Odoslať</button>
+    </div>`);
+  setTimeout(() => { const i = $("#emailTo"); if (i) i.focus(); }, 50);
+}
+
+async function sendEmailNow(it) {
+  const input = $("#emailTo");
+  const raw = (input?.value || "").trim();
+  if (!raw || !raw.includes("@")) { toast("Zadaj platnú e-mailovú adresu", true); return; }
+  const to = raw.split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+
+  const btn = $('[data-action="send-email-now"]');
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Odosielam…`; }
+
+  try {
+    const r = await fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, subject: emailSubject(it), text: emailText(it) })
+    });
+    if (r.ok) { closeModal(); toast("E-mail odoslaný ✓"); return; }
+    // 501 = služba nie je nastavená → otvor mailového klienta
+    closeModal();
+    window.location.href = buildMailto(it, to.join(","));
+    toast("Otváram mailového klienta — odoslanie potvrď tam");
+  } catch (e) {
+    // žiadny server / offline → otvor mailového klienta
+    closeModal();
+    window.location.href = buildMailto(it, to.join(","));
+    toast("Otváram mailového klienta — odoslanie potvrď tam");
+  }
+}
+
+/* ============================================================
+   ZDIEĽANIE + INŠTALÁCIA NA PLOCHU
+   ============================================================ */
+let deferredInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+
+function appLink() {
+  return location.origin + location.pathname.replace(/index\.html$/, "");
+}
+
+function openShareModal() {
+  const link = appLink();
+  openModal(`
+    <div class="modal-head">${I.share}<h3>Zdieľať / Inštalovať</h3></div>
+    <p class="modal-sub">Pošli kolegom tento odkaz. Po otvorení si appku pridajú na plochu telefónu ako ikonku.</p>
+    <div class="linkbox" id="appLink">${esc(link)}</div>
+    <div class="modal-actions">
+      <button class="btn" data-action="copy-link" data-link="${esc(link)}">Kopírovať odkaz</button>
+      <button class="btn primary" data-action="share-link" data-link="${esc(link)}">${I.share} Zdieľať…</button>
+    </div>
+    ${deferredInstallPrompt ? `<button class="btn primary" style="margin-top:10px" data-action="install-app">${I.phone} Inštalovať na tento telefón</button>` : ""}
+    <div class="install-help">
+      <div class="ih"><b>📱 iPhone (Safari):</b> dole klikni na ikonu Zdieľať (štvorček so šípkou nahor) → posuň zoznam a vyber <b>Pridať na plochu</b> → <b>Pridať</b>.</div>
+      <div class="ih"><b>🤖 Android (Chrome):</b> vpravo hore klikni na menu <b>⋮</b> → <b>Pridať na plochu</b> (alebo <b>Inštalovať aplikáciu</b>) → potvrď.</div>
+    </div>
+    <button class="btn ghost" style="margin-top:10px" data-action="modal-close">Zavrieť</button>`);
+}
+
+async function copyLink(link) {
+  try { await navigator.clipboard.writeText(link); toast("Odkaz skopírovaný ✓"); }
+  catch { toast("Skopíruj odkaz ručne z políčka vyššie"); }
+}
+async function shareLink(link) {
+  if (navigator.share) {
+    try { await navigator.share({ title: "GEMBA Walk", text: "Otvor a pridaj si na plochu telefónu:", url: link }); }
+    catch { /* používateľ zrušil */ }
+  } else { copyLink(link); }
+}
+async function installApp() {
+  if (!deferredInstallPrompt) { toast("Inštaláciu spustíš cez menu prehliadača (viď návod nižšie)"); return; }
+  deferredInstallPrompt.prompt();
+  try { await deferredInstallPrompt.userChoice; } catch { /* ignore */ }
+  deferredInstallPrompt = null;
+  closeModal();
 }
 
 /* ============================================================
@@ -826,6 +963,7 @@ function render() {
         ${left || `<div class="brand"><span class="dot"></span><div><div>${esc(title)}</div>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div></div>`}
         ${left ? `<div class="brand" style="font-size:16px">${esc(title)}</div>` : ""}
         <div class="spacer"></div>
+        ${showNav ? `<button class="iconbtn" data-action="share-open" title="Zdieľať / Inštalovať">${I.share}</button>` : ""}
         ${showNav ? `<button class="iconbtn" data-action="logout" title="Odhlásiť">${I.logout}</button>` : ""}
       </div>
       <div id="banner" class="banner"></div>
@@ -851,23 +989,16 @@ function renderConfigNotice() {
     <div class="shell"><div class="content config-notice">
       <h2>⚙️ Treba doplniť pripojenie</h2>
       <p>Appka beží, ale ešte nie je napojená na databázu. Otvor súbor
-      <code>js/config.js</code> a doplň údaje zo Supabase:</p>
-      <ol>
-        <li>Vytvor projekt na <code>supabase.com</code> (zadarmo).</li>
-        <li>Spusti SQL zo súboru <code>schema.sql</code> (SQL Editor → Run).</li>
-        <li>Skopíruj <code>Project URL</code> a <code>anon public</code> kľúč do <code>config.js</code>.</li>
-      </ol>
+      <code>js/config.js</code> a doplň údaje zo Supabase (URL + publishable kľúč).</p>
       <p>Podrobný návod nájdeš v súbore <code>README.md</code>.</p>
     </div></div>`;
 }
 
-/* ---------- Naviazanie eventov po renderi ---------- */
 function wireView() {
   if (state.view === "list") {
     const s = $("#searchInput");
     if (s) s.addEventListener("input", e => {
       state.filters.q = e.target.value;
-      // re-render len zoznamovú časť pre plynulosť
       const holder = document.createElement("div");
       holder.innerHTML = listHTML();
       $(".content").replaceChildren(...holder.childNodes);
@@ -908,7 +1039,6 @@ document.addEventListener("click", async (ev) => {
       state.editing = null; state.formPhotos = []; state.view = "form"; render(); break;
 
     case "back":
-      // z detailu aj formulára späť na zoznam
       state.view = "list"; render(); break;
 
     case "open": {
@@ -936,9 +1066,22 @@ document.addEventListener("click", async (ev) => {
 
     case "email": {
       const it = state.inspections.find(x => x.id === id);
-      if (it) window.location.href = emailFor(it);
+      if (it) openEmailModal(it);
       break;
     }
+    case "send-email-now": {
+      const it = state.inspections.find(x => x.id === id);
+      if (it) sendEmailNow(it);
+      break;
+    }
+    case "modal-close": closeModal(); break;
+    case "modal-backdrop": if (ev.target === el) closeModal(); break;
+
+    case "share-open": openShareModal(); break;
+    case "copy-link": copyLink(el.dataset.link); break;
+    case "share-link": shareLink(el.dataset.link); break;
+    case "install-app": installApp(); break;
+
     case "pdf": {
       const it = state.inspections.find(x => x.id === id);
       if (it) exportPDF(it);
@@ -946,6 +1089,10 @@ document.addEventListener("click", async (ev) => {
     }
     case "export-csv": exportCSV(); break;
     case "export-xlsx": exportXLSX(); break;
+
+    case "info-site":
+      toast("Sem napíš presné miesto — napr. „pri stroji XY", regál 3, alebo vstup do haly.");
+      break;
 
     case "seg": {
       const name = el.dataset.seg;
@@ -959,7 +1106,12 @@ document.addEventListener("click", async (ev) => {
       break;
     }
 
-    case "pick-photo": $("#filePicker").click(); break;
+    case "pick-camera":
+      { const fp = $("#filePicker"); fp.setAttribute("capture", "environment"); fp.click(); }
+      break;
+    case "pick-gallery":
+      { const fp = $("#filePicker"); fp.removeAttribute("capture"); fp.click(); }
+      break;
 
     case "rm-photo":
       state.formPhotos = state.formPhotos.filter(p => p.id !== id);
@@ -990,12 +1142,7 @@ $("#filePicker").addEventListener("change", async (e) => {
 function refreshPhotoGrid() {
   const grid = $("#photoGrid");
   if (!grid) return;
-  grid.innerHTML = state.formPhotos.map(p => `
-    <div class="ph">
-      <img src="${esc(p.dataUrl || p.url)}" alt="" />
-      ${p.uploading ? `<div class="up">…</div>` : ""}
-      <button type="button" class="rm" data-action="rm-photo" data-id="${esc(p.id)}">${I.close}</button>
-    </div>`).join("");
+  grid.innerHTML = state.formPhotos.map(p => photoTile(p)).join("");
 }
 
 /* ---------- Uloženie formulára ---------- */
@@ -1007,7 +1154,6 @@ async function onSubmitForm(e) {
   const btn = $("#saveBtn");
   btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Ukladám…`;
 
-  // OFFLINE: ulož do fronty
   if (!navigator.onLine && !state.editing) {
     const photoDataUrls = state.formPhotos.filter(p => !p.uploaded && p.dataUrl).map(p => p.dataUrl);
     queueInspection(payload, photoDataUrls);
@@ -1054,8 +1200,6 @@ async function init() {
     render();
     await loadInspections();
     await flushQueue();
-
-    // realtime — živá aktualizácia keď pridá kolega
     try {
       supabase.channel("inspections-rt")
         .on("postgres_changes", { event: "*", schema: "public", table: "inspections" }, () => {
