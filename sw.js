@@ -1,6 +1,6 @@
 /* Service worker — cache app shell, aby sa appka otvorila aj offline.
    Po každej zmene súborov zvýš VERSION (vyčistí starú cache). */
-const VERSION = "gemba-v1";
+const VERSION = "gemba-v3";
 const SHELL = [
   "./",
   "./index.html",
