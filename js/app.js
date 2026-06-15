@@ -130,10 +130,10 @@ async function loadInspections() {
     state.inspections = data || [];
   } catch (e) {
     if (!navigator.onLine) {
-      toast("Si offline — zobrazujem len lokálne čakajúce záznamy", true);
+      toast("Si offline - zobrazujem len lokalne cakajuce zaznamy", true);
       state.inspections = [];
     } else {
-      toast("Chyba načítania: " + (e.message || e), true);
+      toast("Chyba nacitania: " + (e.message || e), true);
     }
   } finally {
     state.loading = false;
@@ -197,10 +197,10 @@ function compressImage(file, maxW = 1080, maxKB = 500) {
         };
         tryExport();
       };
-      img.onerror = () => reject(new Error("Neplatný obrázok"));
+      img.onerror = () => reject(new Error("Neplatny obrazok"));
       img.src = reader.result;
     };
-    reader.onerror = () => reject(new Error("Nepodarilo sa načítať súbor"));
+    reader.onerror = () => reject(new Error("Nepodarilo sa nacitat subor"));
     reader.readAsDataURL(file);
   });
 }
@@ -253,7 +253,7 @@ function queueInspection(payload, photoDataUrls) {
 async function flushQueue() {
   const q = getQueue();
   if (!q.length || !navigator.onLine || !state.user) return;
-  showBanner("syncing", "Synchronizujem čakajúce záznamy…");
+  showBanner("syncing", "Synchronizujem cakajuce zaznamy...");
   const remaining = [];
   for (const item of q) {
     try {
@@ -273,7 +273,7 @@ async function flushQueue() {
   }
   setQueue(remaining);
   hideBanner();
-  if (remaining.length === 0 && q.length) toast("Čakajúce záznamy odoslané ✓");
+  if (remaining.length === 0 && q.length) toast("Cakajuce zaznamy odoslane OK");
   await loadInspections();
 }
 
@@ -288,12 +288,12 @@ function hideBanner() { const b = $("#banner"); if (b) b.className = "banner"; }
 function updateConnBanner() {
   if (!navigator.onLine) {
     const n = getQueue().length;
-    showBanner("offline", n ? `Offline — ${n} záznam(ov) čaká na odoslanie` : "Si offline — záznamy sa uložia lokálne");
+    showBanner("offline", n ? `Offline - ${n} zaznam(ov) caka na odoslanie` : "Si offline - zaznamy sa ulozia lokalne");
   } else hideBanner();
 }
 
 /* ============================================================
-   MODÁLNE OKNO
+   MODALNE OKNO
    ============================================================ */
 function openModal(html) {
   let m = $("#modalRoot");
@@ -312,7 +312,7 @@ function closeModal() {
 }
 
 /* ============================================================
-   AUTENTIFIKÁCIA
+   AUTENTIFIKACIA
    ============================================================ */
 function renderAuth() {
   const m = state.authMode;
@@ -322,7 +322,7 @@ function renderAuth() {
         <div class="mark">${I.list.replace('currentColor', '#1a1205')}</div>
         <div><h1>GEMBA Walk</h1></div>
       </div>
-      <p class="tag">${m === "login" ? "Prihlás sa do tímového priestoru" : "Vytvor si konto"}</p>
+      <p class="tag">${m === "login" ? "Prihlas sa do timoveho priestoru" : "Vytvor si konto"}</p>
       <div id="authMsg"></div>
       <form id="authForm" class="form" autocomplete="on">
         <div class="group">
@@ -331,15 +331,15 @@ function renderAuth() {
         </div>
         <div class="group">
           <label>Heslo</label>
-          <input type="password" id="password" required minlength="6" placeholder="••••••••" />
+          <input type="password" id="password" required minlength="6" placeholder="........" />
         </div>
         <button class="btn primary" type="submit" id="authBtn">
-          ${m === "login" ? "Prihlásiť sa" : "Vytvoriť konto"}
+          ${m === "login" ? "Prihlasit sa" : "Vytvorit konto"}
         </button>
       </form>
       <div class="switch">
-        ${m === "login" ? "Nemáš konto?" : "Už máš konto?"}
-        <button data-action="toggle-auth" type="button">${m === "login" ? "Zaregistruj sa" : "Prihlás sa"}</button>
+        ${m === "login" ? "Nemas konto?" : "Uz mas konto?"}
+        <button data-action="toggle-auth" type="button">${m === "login" ? "Zaregistruj sa" : "Prihlas sa"}</button>
       </div>
     </div></div>`;
 
@@ -359,16 +359,16 @@ function renderAuth() {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         if (data.user && !data.session) {
-          msg.innerHTML = `<div class="ok">Konto vytvorené. Ak máš zapnuté potvrdenie e-mailu, klikni na odkaz v schránke a potom sa prihlás.</div>`;
+          msg.innerHTML = `<div class="ok">Konto vytvorene. Ak mas zapnute potvrdenie e-mailu, klikni na odkaz v schranke a potom sa prihlas.</div>`;
           state.authMode = "login";
           btn.disabled = false;
           return renderAuth();
         }
       }
     } catch (err) {
-      msg.innerHTML = `<div class="err">${esc(err.message || "Prihlásenie zlyhalo")}</div>`;
+      msg.innerHTML = `<div class="err">${esc(err.message || "Prihlasenie zlyhalo")}</div>`;
       btn.disabled = false;
-      btn.textContent = state.authMode === "login" ? "Prihlásiť sa" : "Vytvoriť konto";
+      btn.textContent = state.authMode === "login" ? "Prihlasit sa" : "Vytvorit konto";
     }
   });
 }
@@ -384,7 +384,7 @@ function pendingAsCards() {
     site: item.payload.site,
     site_detail: item.payload.site_detail,
     issue_found: item.payload.issue_found,
-    status: "Čaká na synchronizáciu",
+    status: "Caka na synchronizaciu",
     priority: item.payload.priority,
     photos: item.photoDataUrls || [],
     created_at: item.created_at
@@ -410,15 +410,15 @@ function listHTML() {
   const items = filtered();
   const f = state.filters;
   const statusChips = ["", ...STATUSES].map(s =>
-    `<button class="chip ${f.status === s ? "active" : ""}" data-action="filter-status" data-val="${esc(s)}">${s === "" ? "Všetky stavy" : esc(s)}</button>`).join("");
+    `<button class="chip ${f.status === s ? "active" : ""}" data-action="filter-status" data-val="${esc(s)}">${s === "" ? "Vsetky stavy" : esc(s)}</button>`).join("");
 
   let body;
   if (state.loading) {
     body = `<div class="list">${`<div class="skeleton"></div>`.repeat(4)}</div>`;
   } else if (!items.length) {
     body = `<div class="empty">${I.inbox}
-      <div class="big">${f.q || f.status || f.site || f.priority ? "Žiadne výsledky" : "Zatiaľ žiadne záznamy"}</div>
-      <div>${f.q || f.status || f.site || f.priority ? "Skús zmeniť filter alebo hľadanie." : "Klikni na + a zaznamenaj prvý nález z obhliadky."}</div>
+      <div class="big">${f.q || f.status || f.site || f.priority ? "Ziadne vysledky" : "Zatial ziadne zaznamy"}</div>
+      <div>${f.q || f.status || f.site || f.priority ? "Skus zmenit filter alebo hladanie." : "Klikni na + a zaznamenaj prvy nalez z obhliadky."}</div>
     </div>`;
   } else {
     body = `<div class="list">${items.map(cardHTML).join("")}</div>`;
@@ -427,19 +427,19 @@ function listHTML() {
   return `
     <div class="toolbar">
       <div class="search">${I.search}
-        <input id="searchInput" type="search" placeholder="Hľadať nález, miesto, popis…" value="${esc(f.q)}" />
+        <input id="searchInput" type="search" placeholder="Hladat nalez, miesto, popis..." value="${esc(f.q)}" />
       </div>
       <div class="filters">
         ${statusChips}
         <div class="select-wrap">
           <select id="siteFilter">
-            <option value="">Všetky lokality</option>
+            <option value="">Vsetky lokality</option>
             ${SITES.map(s => `<option ${f.site === s ? "selected" : ""}>${esc(s)}</option>`).join("")}
           </select>
         </div>
         <div class="select-wrap">
           <select id="prioFilter">
-            <option value="">Všetky priority</option>
+            <option value="">Vsetky priority</option>
             ${PRIORITIES.map(p => `<option ${f.priority === p ? "selected" : ""}>${esc(p)}</option>`).join("")}
           </select>
         </div>
@@ -457,7 +457,7 @@ function cardHTML(it) {
       <div class="body">
         <div class="row1">
           <span class="site">${esc(it.site)}</span>
-          ${it.site_detail ? `<span class="sitedetail">· ${esc(it.site_detail)}</span>` : ""}
+          ${it.site_detail ? `<span class="sitedetail">. ${esc(it.site_detail)}</span>` : ""}
           <span class="topic">${esc(it.gemba_topic)}</span>
         </div>
         <div class="issue">${esc(it.issue_found || "(bez popisu)")}</div>
@@ -479,7 +479,7 @@ function cardHTML(it) {
 function detailHTML(it) {
   const field = (label, val) =>
     `<div class="field"><div class="label">${label}</div>
-      <div class="value ${val ? "" : "empty-val"}">${val ? esc(val) : "—"}</div></div>`;
+      <div class="value ${val ? "" : "empty-val"}">${val ? esc(val) : "-"}</div></div>`;
   const photos = it.photos || [];
   return `
     <div class="detail">
@@ -488,27 +488,27 @@ function detailHTML(it) {
         ${statusBadge(it.status)} ${priorityBadge(it.priority)}
       </div>
       ${field("Lokalita", it.site)}
-      ${field("Presné miesto", it.site_detail)}
-      ${field("Popis nálezu", it.issue_found)}
-      ${field("Možná príčina", it.possible_root_cause)}
-      ${field("Ďalší krok", it.next_step)}
-      ${field("Priradené", it.assigned_to)}
-      ${field("Nahlásil", it.reported_by)}
-      ${field("Vytvorené", fmtDate(it.created_at))}
-      ${field("Upravené", fmtDate(it.updated_at))}
+      ${field("Presne miesto", it.site_detail)}
+      ${field("Popis nalezu", it.issue_found)}
+      ${field("Mozna pricina", it.possible_root_cause)}
+      ${field("Dalsi krok", it.next_step)}
+      ${field("Priradene", it.assigned_to)}
+      ${field("Nahlasil", it.reported_by)}
+      ${field("Vytvorene", fmtDate(it.created_at))}
+      ${field("Upravene", fmtDate(it.updated_at))}
       ${photos.length ? `<div class="field"><div class="label">Fotografie (${photos.length})</div>
         <div class="gallery">${photos.map(u => `<img src="${esc(u)}" loading="lazy" alt="foto" />`).join("")}</div></div>` : ""}
       <div class="detail-actions">
-        <button class="btn" data-action="edit" data-id="${esc(it.id)}">${I.edit} Upraviť</button>
-        <button class="btn" data-action="email" data-id="${esc(it.id)}">${I.mail} Odoslať e-mailom</button>
+        <button class="btn" data-action="edit" data-id="${esc(it.id)}">${I.edit} Upravit</button>
+        <button class="btn" data-action="email" data-id="${esc(it.id)}">${I.mail} Odoslat e-mailom</button>
         <button class="btn" data-action="pdf" data-id="${esc(it.id)}">${I.pdf} PDF</button>
-        <button class="btn danger" data-action="delete" data-id="${esc(it.id)}">${I.trash} Zmazať</button>
+        <button class="btn danger" data-action="delete" data-id="${esc(it.id)}">${I.trash} Zmazat</button>
       </div>
     </div>`;
 }
 
 /* ============================================================
-   FORMULÁR
+   FORMULAR
    ============================================================ */
 function formHTML() {
   const e = state.editing || {};
@@ -523,7 +523,7 @@ function formHTML() {
   return `
     <form class="form" id="inspForm">
       <div class="group">
-        <label>Kategória (Gemba Topic)</label>
+        <label>Kategoria (Gemba Topic)</label>
         <select id="f_topic">${TOPICS.map(t => `<option ${e.gemba_topic === t ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
       </div>
       <div class="group">
@@ -531,25 +531,25 @@ function formHTML() {
         <select id="f_site">${SITES.map(s => `<option ${e.site === s ? "selected" : ""}>${esc(s)}</option>`).join("")}</select>
       </div>
       <div class="group">
-        <label class="label-row">Presné miesto
-          <button type="button" class="info-btn" data-action="info-site" aria-label="Pomoc k presnému miestu">${I.info}</button>
+        <label class="label-row">Presne miesto
+          <button type="button" class="info-btn" data-action="info-site" aria-label="Pomoc k presnemu miestu">${I.info}</button>
         </label>
-        <input type="text" id="f_site_detail" placeholder="napr. pri stroji XY, regál 3, vstup do haly" value="${esc(e.site_detail || "")}" />
+        <input type="text" id="f_site_detail" placeholder="napr. pri stroji XY, regal 3, vstup do haly" value="${esc(e.site_detail || "")}" />
       </div>
       <div class="group">
-        <label>Popis nálezu</label>
-        <textarea id="f_issue" placeholder="Čo si našiel?">${esc(e.issue_found || "")}</textarea>
+        <label>Popis nalezu</label>
+        <textarea id="f_issue" placeholder="Co si nasiel?">${esc(e.issue_found || "")}</textarea>
       </div>
       <div class="group">
-        <label>Možná príčina</label>
-        <textarea id="f_cause" placeholder="Možná koreňová príčina">${esc(e.possible_root_cause || "")}</textarea>
+        <label>Mozna pricina</label>
+        <textarea id="f_cause" placeholder="Mozna korenova pricina">${esc(e.possible_root_cause || "")}</textarea>
       </div>
       <div class="group">
-        <label>Ďalší krok</label>
-        <textarea id="f_next" placeholder="Navrhované riešenie">${esc(e.next_step || "")}</textarea>
+        <label>Dalsi krok</label>
+        <textarea id="f_next" placeholder="Navrhovane riesenie">${esc(e.next_step || "")}</textarea>
       </div>
       <div class="group">
-        <label>Priradené (e-mail riešiteľa)</label>
+        <label>Priradene (e-mail riesitela)</label>
         <input type="text" id="f_assigned" placeholder="meno@firma.sk" value="${esc(e.assigned_to || "")}" />
       </div>
       <div class="group">
@@ -563,15 +563,15 @@ function formHTML() {
       <div class="group">
         <label>Fotografie</label>
         <div class="photo-actions">
-          <button type="button" class="btn primary" data-action="pick-camera">${I.camera} Odfotiť</button>
-          <button type="button" class="btn" data-action="pick-gallery">${I.image} Pridať fotku</button>
+          <button type="button" class="btn primary" data-action="pick-camera">${I.camera} Odfotit</button>
+          <button type="button" class="btn" data-action="pick-gallery">${I.image} Pridat fotku</button>
         </div>
-        <div class="hint">„Odfotiť" otvorí fotoaparát, „Pridať fotku" galériu. Fotka sa automaticky zmenší.</div>
+        <div class="hint">Odfotit otvori fotoaparat, Pridat fotku galeriu. Fotka sa automaticky zmensi.</div>
         <div class="photo-grid" id="photoGrid">
           ${photos.map(p => photoTile(p)).join("")}
         </div>
       </div>
-      <button type="submit" class="btn primary" id="saveBtn">Uložiť záznam</button>
+      <button type="submit" class="btn primary" id="saveBtn">Ulozit zaznam</button>
     </form>`;
 }
 
@@ -580,7 +580,7 @@ function photoTile(p) {
     <div class="ph">
       <img src="${esc(p.dataUrl || p.url)}" alt="" />
       ${p.uploading ? `<div class="up"><span class="spin"></span></div>` : ""}
-      <button type="button" class="rm" data-action="rm-photo" data-id="${esc(p.id)}" aria-label="Zmazať fotku">${I.trash}</button>
+      <button type="button" class="rm" data-action="rm-photo" data-id="${esc(p.id)}" aria-label="Zmazat fotku">${I.trash}</button>
     </div>`;
 }
 
@@ -607,7 +607,7 @@ function readForm() {
    ============================================================ */
 function pieSVG(data) {
   const total = data.reduce((a, d) => a + d.value, 0);
-  if (!total) return `<div class="empty" style="padding:20px">Žiadne dáta</div>`;
+  if (!total) return `<div class="empty" style="padding:20px">Ziadne data</div>`;
   const cx = 90, cy = 90, r = 78;
   let angle = -Math.PI / 2;
   const arcs = data.filter(d => d.value > 0).map((d) => {
@@ -680,27 +680,27 @@ function dashboardHTML() {
 
   const legend = byTopic.filter(d => d.value > 0).map(d =>
     `<div class="li"><span class="sw" style="background:${d.color}"></span><span class="nm">${esc(d.label)}</span><span class="vl">${d.value}</span></div>`).join("")
-    || `<div class="li"><span class="nm" style="color:var(--faint)">Žiadne dáta</span></div>`;
+    || `<div class="li"><span class="nm" style="color:var(--faint)">Ziadne data</span></div>`;
 
   return `
-    <div class="section-title">Prehľad</div>
+    <div class="section-title">Prehlad</div>
     <div class="stats">
-      <div class="stat"><div class="num">${data.length}</div><div class="cap">Záznamov spolu</div></div>
-      <div class="stat"><div class="num" style="color:var(--st-prog)">${open}</div><div class="cap">Otvorené</div></div>
-      <div class="stat"><div class="num" style="color:var(--st-done)">${done}</div><div class="cap">Vyriešené</div></div>
-      <div class="stat"><div class="num" style="color:var(--pr-crit)">${data.filter(d => d.priority === "Kritická").length}</div><div class="cap">Kritické</div></div>
+      <div class="stat"><div class="num">${data.length}</div><div class="cap">Zaznamov spolu</div></div>
+      <div class="stat"><div class="num" style="color:var(--st-prog)">${open}</div><div class="cap">Otvorene</div></div>
+      <div class="stat"><div class="num" style="color:var(--st-done)">${done}</div><div class="cap">Vyriesene</div></div>
+      <div class="stat"><div class="num" style="color:var(--pr-crit)">${data.filter(d => d.priority === "Kritická").length}</div><div class="cap">Kriticke</div></div>
     </div>
     <div class="panel">
-      <h3>Problémy podľa kategórie</h3>
+      <h3>Problemy podla kategorie</h3>
       ${pieSVG(byTopic)}
       <div class="legend">${legend}</div>
     </div>
     <div class="panel">
-      <h3>Nahlásené nálezy — posledných 30 dní</h3>
+      <h3>Nahlasene nalezy - poslednych 30 dni</h3>
       ${lineSVG(days)}
     </div>
-    <button class="btn" data-action="export-xlsx" style="margin-bottom:10px">${I.download} Stiahnuť Excel (.xlsx)</button>
-    <button class="btn ghost" data-action="export-csv">${I.download} Stiahnuť CSV</button>`;
+    <button class="btn" data-action="export-xlsx" style="margin-bottom:10px">${I.download} Stiahnut Excel (.xlsx)</button>
+    <button class="btn ghost" data-action="export-csv">${I.download} Stiahnut CSV</button>`;
 }
 
 /* ============================================================
@@ -708,12 +708,12 @@ function dashboardHTML() {
    ============================================================ */
 function rowsForExport() {
   return state.inspections.map(it => ({
-    ID: it.id, Kategória: it.gemba_topic, Lokalita: it.site, "Presné miesto": it.site_detail,
-    "Popis nálezu": it.issue_found, "Možná príčina": it.possible_root_cause,
-    "Ďalší krok": it.next_step, Priradené: it.assigned_to, Nahlásil: it.reported_by,
-    Stav: it.status, Priorita: it.priority, "Počet fotiek": (it.photos || []).length,
+    ID: it.id, Kategoria: it.gemba_topic, Lokalita: it.site, "Presne miesto": it.site_detail,
+    "Popis nalezu": it.issue_found, "Mozna pricina": it.possible_root_cause,
+    "Dalsi krok": it.next_step, Priradene: it.assigned_to, Nahlasil: it.reported_by,
+    Stav: it.status, Priorita: it.priority, "Pocet fotiek": (it.photos || []).length,
     "Odkazy na fotky": (it.photos || []).join(" | "),
-    Vytvorené: fmtDate(it.created_at), Upravené: fmtDate(it.updated_at)
+    Vytvorene: fmtDate(it.created_at), Upravene: fmtDate(it.updated_at)
   }));
 }
 
@@ -727,18 +727,18 @@ function downloadBlob(blob, filename) {
 
 function exportCSV() {
   const rows = rowsForExport();
-  if (!rows.length) return toast("Žiadne dáta na export", true);
+  if (!rows.length) return toast("Ziadne data na export", true);
   const cols = Object.keys(rows[0]);
   const escCsv = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const csv = [cols.join(","), ...rows.map(r => cols.map(c => escCsv(r[c])).join(","))].join("\r\n");
   downloadBlob(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `gemba-export-${Date.now()}.csv`);
-  toast("CSV stiahnuté ✓");
+  toast("CSV stiahnute OK");
 }
 
 async function exportXLSX() {
   const rows = rowsForExport();
-  if (!rows.length) return toast("Žiadne dáta na export", true);
-  toast("Pripravujem Excel…");
+  if (!rows.length) return toast("Ziadne data na export", true);
+  toast("Pripravujem Excel...");
   try {
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
     const XLSX = window.XLSX;
@@ -746,36 +746,36 @@ async function exportXLSX() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "GEMBA");
     XLSX.writeFile(wb, `gemba-report-${Date.now()}.xlsx`);
-    toast("Excel stiahnutý ✓");
+    toast("Excel stiahnuty OK");
   } catch (e) { toast("Export Excelu zlyhal: " + e.message, true); }
 }
 
 async function exportPDF(it) {
-  toast("Generujem PDF…");
+  toast("Generujem PDF...");
   try {
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const M = 40; let y = 50;
-    doc.setFontSize(20); doc.setTextColor(20); doc.text("GEMBA Walk — záznam", M, y); y += 8;
+    doc.setFontSize(20); doc.setTextColor(20); doc.text("GEMBA Walk - zaznam", M, y); y += 8;
     doc.setDrawColor(245, 165, 36); doc.setLineWidth(2); doc.line(M, y, 555, y); y += 24;
     const line = (label, val) => {
       doc.setFontSize(9); doc.setTextColor(130); doc.text(String(label).toUpperCase(), M, y); y += 13;
       doc.setFontSize(12); doc.setTextColor(20);
-      const txt = doc.splitTextToSize(String(val || "—"), 515);
+      const txt = doc.splitTextToSize(String(val || "-"), 515);
       doc.text(txt, M, y); y += txt.length * 15 + 8;
       if (y > 760) { doc.addPage(); y = 50; }
     };
-    line("Kategória", it.gemba_topic);
+    line("Kategoria", it.gemba_topic);
     line("Lokalita", it.site);
-    line("Presné miesto", it.site_detail);
-    line("Stav / Priorita", `${it.status}  •  ${it.priority}`);
-    line("Popis nálezu", it.issue_found);
-    line("Možná príčina", it.possible_root_cause);
-    line("Ďalší krok", it.next_step);
-    line("Priradené", it.assigned_to);
-    line("Nahlásil", it.reported_by);
-    line("Vytvorené", fmtDate(it.created_at));
+    line("Presne miesto", it.site_detail);
+    line("Stav / Priorita", `${it.status}  -  ${it.priority}`);
+    line("Popis nalezu", it.issue_found);
+    line("Mozna pricina", it.possible_root_cause);
+    line("Dalsi krok", it.next_step);
+    line("Priradene", it.assigned_to);
+    line("Nahlasil", it.reported_by);
+    line("Vytvorene", fmtDate(it.created_at));
 
     const photos = (it.photos || []).slice(0, 4);
     if (photos.length) {
@@ -786,13 +786,13 @@ async function exportPDF(it) {
         try {
           const dataUrl = await urlToDataUrl(url);
           doc.addImage(dataUrl, "JPEG", x, y, 120, 120);
-        } catch { /* preskočíme */ }
+        } catch { /* preskocime */ }
         x += 130;
         if (x > 430) { x = M; y += 130; if (y > 680) { doc.addPage(); y = 50; } }
       }
     }
     doc.save(`gemba-${(it.site || "zaznam")}-${Date.now()}.pdf`);
-    toast("PDF stiahnuté ✓");
+    toast("PDF stiahnute OK");
   } catch (e) { toast("Generovanie PDF zlyhalo: " + e.message, true); }
 }
 
@@ -812,31 +812,31 @@ function urlToDataUrl(url) {
 }
 
 /* ============================================================
-   E-MAIL (priame odoslanie + záloha cez mailto)
+   E-MAIL
    ============================================================ */
 function emailSubject(it) {
-  return `[GEMBA ${it.priority}] ${it.gemba_topic} — ${it.site}${it.site_detail ? " (" + it.site_detail + ")" : ""}`;
+  return `[GEMBA ${it.priority}] ${it.gemba_topic} - ${it.site}${it.site_detail ? " (" + it.site_detail + ")" : ""}`;
 }
 function emailText(it) {
-  return `Nález z obhliadky GEMBA:
+  return `Nalez z obhliadky GEMBA:
 
-Kategória: ${it.gemba_topic}
+Kategoria: ${it.gemba_topic}
 Lokalita: ${it.site}
-Presné miesto: ${it.site_detail || "—"}
+Presne miesto: ${it.site_detail || "-"}
 Stav: ${it.status}
 Priorita: ${it.priority}
 
-Popis nálezu:
-${it.issue_found || "—"}
+Popis nalezu:
+${it.issue_found || "-"}
 
-Možná príčina:
-${it.possible_root_cause || "—"}
+Mozna pricina:
+${it.possible_root_cause || "-"}
 
-Ďalší krok:
-${it.next_step || "—"}
+Dalsi krok:
+${it.next_step || "-"}
 
-Nahlásil: ${it.reported_by || "—"}
-Vytvorené: ${fmtDate(it.created_at)}
+Nahlasil: ${it.reported_by || "-"}
+Vytvorene: ${fmtDate(it.created_at)}
 ${(it.photos || []).length ? "\nFotografie:\n" + it.photos.join("\n") : ""}`;
 }
 function buildMailto(it, to) {
@@ -846,13 +846,13 @@ function buildMailto(it, to) {
 function openEmailModal(it) {
   const def = (it.assigned_to && it.assigned_to.includes("@")) ? it.assigned_to : "";
   openModal(`
-    <div class="modal-head">${I.mail}<h3>Odoslať e-mailom</h3></div>
-    <p class="modal-sub">Záznam sa odošle ako e-mail na zadanú adresu.</p>
+    <div class="modal-head">${I.mail}<h3>Odoslat e-mailom</h3></div>
+    <p class="modal-sub">Zaznam sa odosle ako e-mail na zadanu adresu.</p>
     <input type="email" id="emailTo" placeholder="prijemca@firma.sk" value="${esc(def)}" />
-    <div class="hint">Viac adries oddeľ čiarkou.</div>
+    <div class="hint">Viac adries oddel ciarkou.</div>
     <div class="modal-actions">
-      <button class="btn ghost" data-action="modal-close">Zrušiť</button>
-      <button class="btn primary" data-action="send-email-now" data-id="${esc(it.id)}">Odoslať</button>
+      <button class="btn ghost" data-action="modal-close">Zrusit</button>
+      <button class="btn primary" data-action="send-email-now" data-id="${esc(it.id)}">Odoslat</button>
     </div>`);
   setTimeout(() => { const i = $("#emailTo"); if (i) i.focus(); }, 50);
 }
@@ -860,11 +860,11 @@ function openEmailModal(it) {
 async function sendEmailNow(it) {
   const input = $("#emailTo");
   const raw = (input?.value || "").trim();
-  if (!raw || !raw.includes("@")) { toast("Zadaj platnú e-mailovú adresu", true); return; }
+  if (!raw || !raw.includes("@")) { toast("Zadaj platnu e-mailovu adresu", true); return; }
   const to = raw.split(/[,;]+/).map(s => s.trim()).filter(Boolean);
 
   const btn = $('[data-action="send-email-now"]');
-  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Odosielam…`; }
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Odosielam...`; }
 
   try {
     const r = await fetch("/api/send-email", {
@@ -872,21 +872,19 @@ async function sendEmailNow(it) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ to, subject: emailSubject(it), text: emailText(it) })
     });
-    if (r.ok) { closeModal(); toast("E-mail odoslaný ✓"); return; }
-    // 501 = služba nie je nastavená → otvor mailového klienta
+    if (r.ok) { closeModal(); toast("E-mail odoslany OK"); return; }
     closeModal();
     window.location.href = buildMailto(it, to.join(","));
-    toast("Otváram mailového klienta — odoslanie potvrď tam");
+    toast("Otvaram mailoveho klienta - odoslanie potvrd tam");
   } catch (e) {
-    // žiadny server / offline → otvor mailového klienta
     closeModal();
     window.location.href = buildMailto(it, to.join(","));
-    toast("Otváram mailového klienta — odoslanie potvrď tam");
+    toast("Otvaram mailoveho klienta - odoslanie potvrd tam");
   }
 }
 
 /* ============================================================
-   ZDIEĽANIE + INŠTALÁCIA NA PLOCHU
+   ZDIELANIE + INSTALACIA
    ============================================================ */
 let deferredInstallPrompt = null;
 window.addEventListener("beforeinstallprompt", (e) => {
@@ -901,33 +899,33 @@ function appLink() {
 function openShareModal() {
   const link = appLink();
   openModal(`
-    <div class="modal-head">${I.share}<h3>Zdieľať / Inštalovať</h3></div>
-    <p class="modal-sub">Pošli kolegom tento odkaz. Po otvorení si appku pridajú na plochu telefónu ako ikonku.</p>
+    <div class="modal-head">${I.share}<h3>Zdielat / Instalovat</h3></div>
+    <p class="modal-sub">Posli kolegom tento odkaz. Po otvoreni si appku pridaju na plochu telefonu ako ikonku.</p>
     <div class="linkbox" id="appLink">${esc(link)}</div>
     <div class="modal-actions">
-      <button class="btn" data-action="copy-link" data-link="${esc(link)}">Kopírovať odkaz</button>
-      <button class="btn primary" data-action="share-link" data-link="${esc(link)}">${I.share} Zdieľať…</button>
+      <button class="btn" data-action="copy-link" data-link="${esc(link)}">Kopirovat odkaz</button>
+      <button class="btn primary" data-action="share-link" data-link="${esc(link)}">${I.share} Zdielat...</button>
     </div>
-    ${deferredInstallPrompt ? `<button class="btn primary" style="margin-top:10px" data-action="install-app">${I.phone} Inštalovať na tento telefón</button>` : ""}
+    ${deferredInstallPrompt ? `<button class="btn primary" style="margin-top:10px" data-action="install-app">${I.phone} Instalovat na tento telefon</button>` : ""}
     <div class="install-help">
-      <div class="ih"><b>📱 iPhone (Safari):</b> dole klikni na ikonu Zdieľať (štvorček so šípkou nahor) → posuň zoznam a vyber <b>Pridať na plochu</b> → <b>Pridať</b>.</div>
-      <div class="ih"><b>🤖 Android (Chrome):</b> vpravo hore klikni na menu <b>⋮</b> → <b>Pridať na plochu</b> (alebo <b>Inštalovať aplikáciu</b>) → potvrď.</div>
+      <div class="ih"><b>iPhone (Safari):</b> dole klikni na ikonu Zdielat (stvorcek so sipkou nahor) -> posun zoznam a vyber <b>Pridat na plochu</b> -> <b>Pridat</b>.</div>
+      <div class="ih"><b>Android (Chrome):</b> vpravo hore klikni na menu <b>...</b> -> <b>Pridat na plochu</b> (alebo <b>Instalovat aplikaciu</b>) -> potvrd.</div>
     </div>
-    <button class="btn ghost" style="margin-top:10px" data-action="modal-close">Zavrieť</button>`);
+    <button class="btn ghost" style="margin-top:10px" data-action="modal-close">Zavriet</button>`);
 }
 
 async function copyLink(link) {
-  try { await navigator.clipboard.writeText(link); toast("Odkaz skopírovaný ✓"); }
-  catch { toast("Skopíruj odkaz ručne z políčka vyššie"); }
+  try { await navigator.clipboard.writeText(link); toast("Odkaz skopirovany OK"); }
+  catch { toast("Skopiruj odkaz rucne z policka vyssie"); }
 }
 async function shareLink(link) {
   if (navigator.share) {
-    try { await navigator.share({ title: "GEMBA Walk", text: "Otvor a pridaj si na plochu telefónu:", url: link }); }
-    catch { /* používateľ zrušil */ }
+    try { await navigator.share({ title: "GEMBA Walk", text: "Otvor a pridaj si na plochu telefonu:", url: link }); }
+    catch { /* uzivatel zrusil */ }
   } else { copyLink(link); }
 }
 async function installApp() {
-  if (!deferredInstallPrompt) { toast("Inštaláciu spustíš cez menu prehliadača (viď návod nižšie)"); return; }
+  if (!deferredInstallPrompt) { toast("Instalaciu spustis cez menu prehliadaca (vid navod nizsie)"); return; }
   deferredInstallPrompt.prompt();
   try { await deferredInstallPrompt.userChoice; } catch { /* ignore */ }
   deferredInstallPrompt = null;
@@ -935,22 +933,22 @@ async function installApp() {
 }
 
 /* ============================================================
-   RENDER (shell + router)
+   RENDER
    ============================================================ */
 function render() {
   if (!configured) return renderConfigNotice();
   if (!state.user) return renderAuth();
 
   let title = "GEMBA Walk", sub = "", left = "", content = "";
-  if (state.view === "list") { sub = `${state.inspections.length} záznamov`; content = listHTML(); }
+  if (state.view === "list") { sub = `${state.inspections.length} zaznamov`; content = listHTML(); }
   else if (state.view === "dashboard") { title = "Dashboard"; content = dashboardHTML(); }
   else if (state.view === "detail") {
     const it = state.inspections.find(x => x.id === state.selectedId);
-    title = "Detail nálezu";
+    title = "Detail nalezu";
     left = `<button class="iconbtn" data-action="back">${I.back}</button>`;
-    content = it ? detailHTML(it) : `<div class="empty"><div class="big">Záznam sa nenašiel</div></div>`;
+    content = it ? detailHTML(it) : `<div class="empty"><div class="big">Zaznam sa nenasiel</div></div>`;
   } else if (state.view === "form") {
-    title = state.editing ? "Upraviť záznam" : "Nový záznam";
+    title = state.editing ? "Upravit zaznam" : "Novy zaznam";
     left = `<button class="iconbtn" data-action="back">${I.close}</button>`;
     content = formHTML();
   }
@@ -963,8 +961,8 @@ function render() {
         ${left || `<div class="brand"><span class="dot"></span><div><div>${esc(title)}</div>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div></div>`}
         ${left ? `<div class="brand" style="font-size:16px">${esc(title)}</div>` : ""}
         <div class="spacer"></div>
-        ${showNav ? `<button class="iconbtn" data-action="share-open" title="Zdieľať / Inštalovať">${I.share}</button>` : ""}
-        ${showNav ? `<button class="iconbtn" data-action="logout" title="Odhlásiť">${I.logout}</button>` : ""}
+        ${showNav ? `<button class="iconbtn" data-action="share-open" title="Zdielat / Instalovat">${I.share}</button>` : ""}
+        ${showNav ? `<button class="iconbtn" data-action="logout" title="Odhlasit">${I.logout}</button>` : ""}
       </div>
       <div id="banner" class="banner"></div>
       <div class="content">${content}</div>
@@ -987,10 +985,9 @@ function navHTML() {
 function renderConfigNotice() {
   appEl.innerHTML = `
     <div class="shell"><div class="content config-notice">
-      <h2>⚙️ Treba doplniť pripojenie</h2>
-      <p>Appka beží, ale ešte nie je napojená na databázu. Otvor súbor
-      <code>js/config.js</code> a doplň údaje zo Supabase (URL + publishable kľúč).</p>
-      <p>Podrobný návod nájdeš v súbore <code>README.md</code>.</p>
+      <h2>Treba doplnit pripojenie</h2>
+      <p>Appka bezi, ale este nie je napojena na databazu. Otvor subor
+      <code>js/config.js</code> a doplne udaje zo Supabase.</p>
     </div></div>`;
 }
 
@@ -1042,7 +1039,7 @@ document.addEventListener("click", async (ev) => {
       state.view = "list"; render(); break;
 
     case "open": {
-      if (id.startsWith("pending-")) { toast("Záznam čaká na synchronizáciu — detail bude po odoslaní."); break; }
+      if (id.startsWith("pending-")) { toast("Zaznam caka na synchronizaciu"); break; }
       state.selectedId = id; state.view = "detail"; render(); break;
     }
 
@@ -1058,8 +1055,8 @@ document.addEventListener("click", async (ev) => {
     }
 
     case "delete": {
-      if (!confirm("Naozaj zmazať tento záznam? Túto akciu nie je možné vrátiť.")) break;
-      try { await removeInspection(id); toast("Záznam zmazaný"); state.view = "list"; await loadInspections(); }
+      if (!confirm("Naozaj zmazat tento zaznam?")) break;
+      try { await removeInspection(id); toast("Zaznam zmazany"); state.view = "list"; await loadInspections(); }
       catch (e) { toast("Mazanie zlyhalo: " + e.message, true); }
       break;
     }
@@ -1091,7 +1088,7 @@ document.addEventListener("click", async (ev) => {
     case "export-xlsx": exportXLSX(); break;
 
     case "info-site":
-      toast("Sem napíš presné miesto — napr. „pri stroji XY", regál 3, alebo vstup do haly.");
+      toast("Sem napis presne miesto - napr. pri stroji XY, regal 3, alebo vstup do haly.");
       break;
 
     case "seg": {
@@ -1119,7 +1116,7 @@ document.addEventListener("click", async (ev) => {
   }
 });
 
-/* ---------- Výber fotiek ---------- */
+/* ---------- Vyber fotiek ---------- */
 $("#filePicker").addEventListener("change", async (e) => {
   const files = [...e.target.files];
   e.target.value = "";
@@ -1133,7 +1130,7 @@ $("#filePicker").addEventListener("change", async (e) => {
       ph.uploading = false;
     } catch {
       state.formPhotos = state.formPhotos.filter(p => p.id !== ph.id);
-      toast("Fotku sa nepodarilo spracovať", true);
+      toast("Fotku sa nepodarilo spracovat", true);
     }
     refreshPhotoGrid();
   }
@@ -1145,31 +1142,31 @@ function refreshPhotoGrid() {
   grid.innerHTML = state.formPhotos.map(p => photoTile(p)).join("");
 }
 
-/* ---------- Uloženie formulára ---------- */
+/* ---------- Ulozenie formulara ---------- */
 async function onSubmitForm(e) {
   e.preventDefault();
   const payload = readForm();
-  if (!payload.issue_found) { toast("Vyplň aspoň popis nálezu", true); return; }
+  if (!payload.issue_found) { toast("Vypln aspon popis nalezu", true); return; }
 
   const btn = $("#saveBtn");
-  btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Ukladám…`;
+  btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Ukladam...`;
 
   if (!navigator.onLine && !state.editing) {
     const photoDataUrls = state.formPhotos.filter(p => !p.uploaded && p.dataUrl).map(p => p.dataUrl);
     queueInspection(payload, photoDataUrls);
-    toast("Si offline — uložené lokálne, odošle sa po pripojení");
+    toast("Si offline - ulozene lokalne, odosle sa po pripojeni");
     state.view = "list"; render(); return;
   }
 
   try {
     await saveInspection(payload, state.editing?.id);
-    toast(state.editing ? "Záznam upravený ✓" : "Záznam uložený ✓");
+    toast(state.editing ? "Zaznam upraveny OK" : "Zaznam ulozeny OK");
     state.editing = null; state.formPhotos = [];
     state.view = "list";
     await loadInspections();
   } catch (err) {
-    btn.disabled = false; btn.textContent = "Uložiť záznam";
-    toast("Uloženie zlyhalo: " + (err.message || err), true);
+    btn.disabled = false; btn.textContent = "Ulozit zaznam";
+    toast("Ulozenie zlyhalo: " + (err.message || err), true);
   }
 }
 
@@ -1205,7 +1202,7 @@ async function init() {
         .on("postgres_changes", { event: "*", schema: "public", table: "inspections" }, () => {
           if (state.view === "list" || state.view === "dashboard") loadInspections();
         }).subscribe();
-    } catch { /* realtime nie je kritické */ }
+    } catch { /* realtime nie je kriticke */ }
   } else {
     render();
   }
